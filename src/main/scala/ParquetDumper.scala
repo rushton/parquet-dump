@@ -50,6 +50,7 @@ object ParquetDumper {
     val stdin = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("/dev/stdin"))))
 
     var currentFile : java.io.File = java.io.File.createTempFile("parquet-dumper", ".parquet")
+    currentFile.deleteOnExit
     var currentStream : java.io.DataOutputStream = new java.io.DataOutputStream( new java.io.BufferedOutputStream( new java.io.FileOutputStream(currentFile)))
     var atStart = true
     var fileNames = scala.collection.mutable.ListBuffer[String]()

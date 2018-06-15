@@ -56,47 +56,14 @@ object ParquetDumper {
     var numParOnes = 1
     var numBytes = 0
     var sawParquetMrVersion = false
-    val PAR1_BEG = Vector[java.lang.Byte](
-      java.lang.Byte.parseByte("80"),
-      java.lang.Byte.parseByte("65"),
-      java.lang.Byte.parseByte("82"),
-      java.lang.Byte.parseByte("49")
-    )
-    val PAR1_END = Vector[java.lang.Byte](
-      java.lang.Byte.parseByte("0"),
-      java.lang.Byte.parseByte("0"),
-      java.lang.Byte.parseByte("80"),
-      java.lang.Byte.parseByte("65"),
-      java.lang.Byte.parseByte("82"),
-      java.lang.Byte.parseByte("49")
-    )
-
-    var PARQUET_MR_VERSION = Vector[java.lang.Byte](
-      java.lang.Byte.parseByte("112"),
-      java.lang.Byte.parseByte("97"),
-      java.lang.Byte.parseByte("114"),
-      java.lang.Byte.parseByte("113"),
-      java.lang.Byte.parseByte("117"),
-      java.lang.Byte.parseByte("101"),
-      java.lang.Byte.parseByte("116"),
-      java.lang.Byte.parseByte("45"),
-      java.lang.Byte.parseByte("109"),
-      java.lang.Byte.parseByte("114"),
-      java.lang.Byte.parseByte("32"),
-      java.lang.Byte.parseByte("118"),
-      java.lang.Byte.parseByte("101"),
-      java.lang.Byte.parseByte("114"),
-      java.lang.Byte.parseByte("115"),
-      java.lang.Byte.parseByte("105"),
-      java.lang.Byte.parseByte("111"),
-      java.lang.Byte.parseByte("110")
-    )
+    val PAR1_BEG = "PAR1".toList.map(_.toByte).toVector
+    val PAR1_END = Vector[Byte](0.toByte, 0.toByte) ++ PAR1_BEG
+    var PARQUET_MR_VERSION = "parquet-mr version".toList.map(_.toByte).toVector
     val q = scala.collection.mutable.Queue[Byte]()
 
     Stream.continually[java.lang.Byte]({
           try {
-            val b = stdin.readByte
-            b
+            stdin.readByte
           } catch {
             case e: java.io.EOFException => null
             case e: Throwable => throw e

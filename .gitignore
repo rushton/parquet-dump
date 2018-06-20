@@ -2,3 +2,5 @@ target/
 project/build.properties
 project/project
 project/target
+derby.log
+metastore_db

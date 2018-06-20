@@ -1,1 +1,4 @@
 target/
+project/build.properties
+project/project
+project/target

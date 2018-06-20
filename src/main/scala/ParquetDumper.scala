@@ -4,11 +4,12 @@ import java.io.{File, FileInputStream, DataInputStream, BufferedInputStream, Pri
 import org.apache.hadoop.fs.Path
 import org.apache.parquet.hadoop.ParquetReader
 import org.apache.parquet.tools.read.{SimpleReadSupport, SimpleRecord}
-import akka.actor.{ Actor, ActorRef, ActorSystem, Props, PoisonPill}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 
 
 object ParquetDumper {
   def main(args: Array[String]) {
+    import StdinUnpacker._
     org.apache.log4j.LogManager.getRootLogger.setLevel(org.apache.log4j.Level.ERROR)
     val out = new PrintWriter(System.out, true)
     val system = ActorSystem("ParquetDumper")
@@ -19,18 +20,21 @@ object ParquetDumper {
   }
 }
 
-/* Message to tell the unpacker to start unpacking */
-case class Unpack()
-/* Message signaling the unpacker is finished processing */
-case class UnpackFinished()
-/* Message signaling a single parquet reader has finished */
-case class ParquetReaderFinished()
+object StdinUnpacker {
+  /* Message to tell the unpacker to start unpacking */
+  case class Unpack()
+  /* Message signaling the unpacker is finished processing */
+  case class UnpackFinished()
+}
 
 /**
  * Actor for slicing parquet files out of a stream of
  * many parquet files
  */
 class StdinUnpacker(printerActor: ActorRef) extends Actor {
+  import ParquetReaderActor._
+  import StdinUnpacker._
+
   val finishedReaders = new java.util.concurrent.atomic.AtomicInteger(0)
   var unpackFinished = false
   def receive = {
@@ -100,14 +104,22 @@ class StdinUnpacker(printerActor: ActorRef) extends Actor {
   }
 }
 
-/**
- * message signaling a path to be read
- */
-case class ParquetFile(path: String)
+object ParquetReaderActor {
+  /**
+   * message signaling a path to be read
+   */
+  case class ParquetFile(path: String)
+  /* Message signaling a single parquet reader has finished */
+  case class ParquetReaderFinished()
+}
+
 /*
  * Actor for handling the read of parquet files
  */
 class ParquetReaderActor(printerActor: ActorRef) extends Actor {
+  import ParquetReaderActor._
+  import Printer._
+
   var linesSent = 0
   var linesProcessed = 0
   def receive = {
@@ -133,7 +145,7 @@ class ParquetReaderActor(printerActor: ActorRef) extends Actor {
       })
       .takeWhile(_!=null)
       .foreach(v => {
-        printerActor ! Output(v)
+        printerActor ! Printer.ParquetRecord(v)
         linesSent += 1
       })
       new java.io.File(path).delete
@@ -141,25 +153,29 @@ class ParquetReaderActor(printerActor: ActorRef) extends Actor {
   }
 }
 
-/**
- * Message received by Printer
- */
-case class Output(record: SimpleRecord)
-/**
- * Message sent by Printer to notify
- * it has printed a line
- */
-case class LineProcessed()
+object Printer {
+  /**
+   * Message received by Printer
+   */
+  case class ParquetRecord(record: SimpleRecord)
+  /**
+   * Message sent by Printer to notify
+   * it has printed a line
+   */
+  case class LineProcessed()
+}
+
 /*
  * Actor for printing parquet records to out
  */
 class Printer(out: PrintWriter) extends Actor {
+  import Printer._
   def receive = {
     /**
      * takes a simple record and outputs
      * it to out as JSON
      */
-    case Output(record: SimpleRecord) => {
+    case Printer.ParquetRecord(record: SimpleRecord) => {
       record.prettyPrintJson(out)
       out.println()
       sender ! LineProcessed

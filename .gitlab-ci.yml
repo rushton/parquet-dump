@@ -3,11 +3,10 @@
     - mv bintray-sbt-rpm.repo /etc/yum.repos.d/
     - yum -y install sbt jdk1.8.0_112 bc
 
-
 stages:
   - build
 build:
-    before_script: *installsbt
+    before_script: *install_sbt
     only:
       - master
     artifacts:

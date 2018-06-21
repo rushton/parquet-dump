@@ -13,6 +13,6 @@ build_jar:
       - master
     artifacts:
         paths:
-          - target/
+          - target/scala-2.11/*.jar
         untracked: true
     script: sbt assembly

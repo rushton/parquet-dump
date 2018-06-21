@@ -5,7 +5,9 @@
 
 stages:
   - build
-build:
+
+build_jar:
+    stage: build
     before_script: *install_sbt
     only:
       - master

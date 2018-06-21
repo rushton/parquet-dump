@@ -57,6 +57,7 @@ class StdinUnpacker(printerActor: ActorRef) extends Actor {
       val stdin = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("/dev/stdin"))))
 
       var currentFile : java.io.File = java.io.File.createTempFile("parquet-dumper", ".parquet")
+      currentFile.deleteOnExit
       var currentStream : java.io.DataOutputStream = new java.io.DataOutputStream( new java.io.BufferedOutputStream( new java.io.FileOutputStream(currentFile)))
       var atStart = true
       var numParOnes = 1
@@ -91,6 +92,7 @@ class StdinUnpacker(printerActor: ActorRef) extends Actor {
             currentStream.close
             context.actorOf(Props(new ParquetReaderActor(printerActor)), f"ParquetReaderActor_${currentFile.getPath.replaceAll("/","_")}") ! ParquetFile(currentFile.getPath)
             currentFile = java.io.File.createTempFile("parquet-dumper", ".parquet")
+            currentFile.deleteOnExit
             currentStream = new java.io.DataOutputStream( new java.io.BufferedOutputStream( new java.io.FileOutputStream(currentFile)))
           } else {
             sawParquetMrVersion = false

@@ -1,0 +1,17 @@
+.install_sbt: &install_sbt
+    - curl https://bintray.com/sbt/rpm/rpm > bintray-sbt-rpm.repo
+    - mv bintray-sbt-rpm.repo /etc/yum.repos.d/
+    - yum -y install sbt jdk1.8.0_112 bc
+
+
+stages:
+  - build
+build:
+    before_script: *installsbt
+    only:
+      - master
+    artifacts:
+        paths:
+          - target/
+        untracked: true
+    script: sbt assembly

@@ -5,6 +5,10 @@ import org.apache.parquet.io.InputFile;
 import org.apache.parquet.hadoop.util.HadoopStreams;
 import java.io.IOException;
 
+/**
+ * implements InputFile for reading InputStreams where
+ * you know the length of the input stream
+ */
 public class InMemoryInputFile implements InputFile {
   private long size;
   private SeekableInputStream stream;

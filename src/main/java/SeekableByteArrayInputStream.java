@@ -5,6 +5,10 @@ import java.io.IOException;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.fs.PositionedReadable;
 
+/**
+ * Extends ByteArrayInputStream and implements hadoop's Seekable
+ * and PositionedReadable for use of in-memory streams.
+ */
 class SeekableByteArrayInputStream extends ByteArrayInputStream implements Seekable, PositionedReadable  {
     public SeekableByteArrayInputStream(byte[] buf) {
         super(buf);
@@ -18,7 +22,6 @@ class SeekableByteArrayInputStream extends ByteArrayInputStream implements Seeka
     public long getPos() throws IOException {
         return Long.valueOf(this.pos);
     }
-
 
     public boolean seekToNewSource(long targetPos) throws IOException {
         return false;

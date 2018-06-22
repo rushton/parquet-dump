@@ -33,9 +33,6 @@ lazy val root = (project in file("."))
         libraryDependencies += "org.apache.parquet" % "parquet-common" % "1.10.0",
         libraryDependencies += "org.apache.parquet" % "parquet-tools" % "1.10.0",
         libraryDependencies += "org.apache.hadoop" % "hadoop-mapreduce-client-core" % "2.7.0",
-        // https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-hdfs
-        //libraryDependencies += "org.apache.hadoop" % "hadoop-hdfs" % "2.7.1"
-
         libraryDependencies += "org.apache.hadoop" % "hadoop-common" % "2.7.0",
         libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.13"
 

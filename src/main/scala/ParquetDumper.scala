@@ -1,12 +1,10 @@
 package com.tune
 
-import java.io.{File, FileInputStream, FileOutputStream, DataInputStream, BufferedInputStream, BufferedOutputStream, PrintWriter, ByteArrayOutputStream, ByteArrayInputStream}
-import org.apache.hadoop.fs.{Path, FSDataInputStream}
+import java.io.{File, FileInputStream, DataInputStream, BufferedInputStream, PrintWriter}
+import org.apache.hadoop.fs.FSDataInputStream
 import org.apache.parquet.tools.read.{SimpleReadSupport, SimpleRecord}
 import org.apache.parquet.hadoop.util.HadoopStreams
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.conf.Configuration
 
 
 object ParquetDumper {
@@ -41,7 +39,6 @@ class StdinUnpacker(printerActor: ActorRef) extends Actor {
   var unpackFinished = false
   def receive = {
     case UnpackFinished => {
-      println("unpack finished")
       unpackFinished = true
       val numReaders = context.children.size
       if (unpackFinished && numReaders == finishedReaders.get) {
@@ -55,7 +52,6 @@ class StdinUnpacker(printerActor: ActorRef) extends Actor {
     case ParquetReaderFinished => {
       val finished = finishedReaders.incrementAndGet
       val numReaders = context.children.size
-      println(("Parquet reader finished", finished, numReaders, unpackFinished))
       if (unpackFinished && numReaders == finished) {
         context.children.foreach(child => context.stop(child))
         context.stop(printerActor)
@@ -67,60 +63,59 @@ class StdinUnpacker(printerActor: ActorRef) extends Actor {
     case Unpack => {
       val stdin = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("/dev/stdin"))))
 
-      var currentStream = new ByteArrayOutputStream()
+      var currentStream = scala.collection.mutable.ListBuffer[Byte]()
       var atStart = true
       var numParOnes = 1
-      var numBytes = 0
       var sawParquetMrVersion = false
-      val PAR1_BEG = "PAR1".toList.map(_.toByte).toVector
-      val PAR1_END = Vector[Byte](0.toByte, 0.toByte) ++ PAR1_BEG
+      val PAR1_BEG = scala.collection.mutable.Queue("PAR1".toList.map(_.toByte): _*)
+      val PAR1_END = scala.collection.mutable.Queue[Byte](0.toByte, 0.toByte) ++ PAR1_BEG
       var PARQUET_MR_VERSION = "parquet-mr version".toList.map(_.toByte).toVector
       val q = scala.collection.mutable.Queue[Byte]()
 
-      Stream.continually[java.lang.Byte]({
+      var first = true
+      var b: java.lang.Byte = null
+      while (b != null || first) {
+            first = false
             try {
-              stdin.readByte
+              b = stdin.readByte
+              if (q.size >= 18) {
+                q.dequeue
+              }
+              q += b
+              currentStream += b
+              if (!sawParquetMrVersion && q.front == PARQUET_MR_VERSION.head) {
+                sawParquetMrVersion = q.toVector == PARQUET_MR_VERSION
+              }
+              if ((numParOnes % 2 == 1 && q.endsWith(PAR1_BEG))) {
+                sawParquetMrVersion = false
+                numParOnes += 1
+              } else if( sawParquetMrVersion && q.endsWith(PAR1_END)) {
+                if (numParOnes % 2 == 0) {
+                  context.actorOf(
+                    Props(new ParquetReaderActor(printerActor)),
+                    f"ParquetReaderActor_${numParOnes/2}"
+                  ) ! ParquetFile(
+                    new InMemoryInputFile(
+                      HadoopStreams.wrap(
+                        new FSDataInputStream(
+                          new SeekableByteArrayInputStream(currentStream.toArray)
+                        )
+                      ),
+                      currentStream.size.toLong
+                    )
+                  )
+
+                  currentStream = scala.collection.mutable.ListBuffer[Byte]()
+                }
+                numParOnes += 1
+              }
             } catch {
-              case e: java.io.EOFException => null
+              case e: java.io.EOFException => {
+                b = null
+              }
               case e: Throwable => throw e
             }
-      })
-      .takeWhile(x => x != null)
-      .foreach(b => {
-        if (q.size >= 18) {
-          q.dequeue
-        }
-        q += b
-        numBytes+=1
-        currentStream.write(b.intValue)
-        if (!sawParquetMrVersion) {
-          sawParquetMrVersion = q.toVector == PARQUET_MR_VERSION
-        }
-        if ((q.toVector.endsWith(PAR1_BEG) && numParOnes % 2 == 1) || (q.toVector.endsWith(PAR1_END) && sawParquetMrVersion)) {
-          if (numParOnes % 2 == 0) {
-            currentStream.close
-            context.actorOf(
-              Props(new ParquetReaderActor(printerActor)),
-              f"ParquetReaderActor_${numParOnes/2}"
-            ) ! ParquetFile(
-              new InMemoryInputFile(
-                HadoopStreams.wrap(
-                  new FSDataInputStream(
-                    new SeekableByteArrayInputStream(currentStream.toByteArray)
-                  )
-                ),
-                currentStream.size
-              )
-            )
-
-            currentStream.close
-            currentStream = new ByteArrayOutputStream()
-          } else {
-            sawParquetMrVersion = false
-          }
-          numParOnes += 1
-        }
-      })
+      }
       stdin.close
       self ! UnpackFinished
     }
@@ -153,7 +148,6 @@ class ParquetReaderActor(printerActor: ActorRef) extends Actor {
     case LineProcessed => {
       linesProcessed += 1
       if (linesProcessed == linesSent) {
-        println((linesProcessed, linesSent, context.parent))
         context.parent.tell(ParquetReaderFinished, self)
       }
     }
@@ -166,7 +160,6 @@ class ParquetReaderActor(printerActor: ActorRef) extends Actor {
       val builder = new InMemoryBuilder[SimpleRecord](input)
       builder.useReadSupport(new SimpleReadSupport())
 
-      println("starting read")
       val reader = builder.build
       Stream.continually({
         reader.read()

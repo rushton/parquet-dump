@@ -37,29 +37,24 @@ class StdinUnpacker(printerActor: ActorRef) extends Actor {
 
   val finishedReaders = new java.util.concurrent.atomic.AtomicInteger(0)
   var unpackFinished = false
+
+  private def maybeTerminate() {
+    val numReaders = context.children.size
+    if (unpackFinished && numReaders == finishedReaders.get) {
+      context.children.foreach(child => context.stop(child))
+      context.stop(printerActor)
+      context.stop(self)
+      context.system.terminate
+    }
+  }
+
   def receive = {
     case UnpackFinished => {
       unpackFinished = true
-      val numReaders = context.children.size
-      if (unpackFinished && numReaders == finishedReaders.get) {
-        context.children.foreach(child => context.stop(child))
-        context.stop(printerActor)
-        context.stop(self)
-        context.system.terminate
-      }
+      maybeTerminate
     }
 
-    case ParquetReaderFinished => {
-      val finished = finishedReaders.incrementAndGet
-      val numReaders = context.children.size
-      if (unpackFinished && numReaders == finished) {
-        context.children.foreach(child => context.stop(child))
-        context.stop(printerActor)
-        context.stop(self)
-        context.system.terminate
-      }
-    }
-
+    case ParquetReaderFinished => maybeTerminate
     case Unpack => {
       val stdin = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("/dev/stdin"))))
 

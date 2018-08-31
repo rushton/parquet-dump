@@ -13,7 +13,7 @@ Converts binary parquet data from a pipe into JSON outputted to STDOUT
 ```
 # Install
 
-Download the latest jar from the [releases](releases/latest) page
+Download the latest jar from the [releases](../../releases/latest) page
 
 # Build
 

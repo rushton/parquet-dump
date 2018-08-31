@@ -1,11 +1,11 @@
-package com.tune
+package parquetdump
 
 import java.io.{File, FileInputStream, DataInputStream, BufferedInputStream, PrintWriter}
 import org.apache.hadoop.fs.{FSDataInputStream, Path}
-import org.apache.parquet.tools.read.{SimpleReadSupport, SimpleRecord}
 import org.apache.parquet.hadoop.util.HadoopStreams
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import org.apache.parquet.hadoop.ParquetReader;
+
 
 
 object ParquetDumper {

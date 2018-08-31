@@ -1,6 +1,6 @@
-# Parquet Dumper
+# Parquet Dump
 
-Dumps parquet as json to stdout from a pipe
+Converts binary parquet data from a pipe into JSON outputted to STDOUT
 
 # Build
 

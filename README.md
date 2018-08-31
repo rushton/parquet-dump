@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/tuneinc/parquet-dump.svg?branch=master)](https://travis-ci.org/tuneinc/parquet-dump)
 # Parquet Dump
 
 Converts binary parquet data from a pipe into JSON outputted to STDOUT

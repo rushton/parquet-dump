@@ -7,7 +7,14 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import org.apache.parquet.hadoop.ParquetReader;
 
 
-
+/*
+ Akka Message Flow
++------------------+          +-------------------+          +----------------+
+|                  |          |                   |          |                |
+|   StdinUnpacker  +---------->   ParquetReader   +---------->     Printer    |
+|   (1 instance)   |          |   (>=1 instance)  |          |  (1 instance)  |
++------------------+          +-------------------+          +----------------+
+*/
 object ParquetDumper {
   def main(args: Array[String]) {
     import StdinUnpacker._

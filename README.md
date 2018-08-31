@@ -11,6 +11,9 @@ Converts binary parquet data from a pipe into JSON outputted to STDOUT
 {"a":1,"b":null}
 ...
 ```
+# Install
+
+Download the latest jar from the [releases](releases/latest) page
 
 # Build
 
@@ -21,5 +24,5 @@ sbt assembly
 # Run
 
 ```
-cat /tmp/myparquet/*.parquet | java -jar target/scala-2.11/Parquet-Dump-assembly-1.0.0.jar
+cat /tmp/myparquet/*.parquet | java -jar Parquet-Dump-assembly-1.0.0.jar
 ```

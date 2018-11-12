@@ -76,7 +76,7 @@ class StdinUnpacker(printerActor: ActorRef) extends Actor with akka.actor.ActorL
       var numParOnes = 1
       var sawParquetMrVersion = false
       val PAR1_BEG = scala.collection.mutable.Queue("PAR1".toList.map(_.toByte): _*)
-      val PAR1_END = scala.collection.mutable.Queue[Byte](0.toByte, 0.toByte) ++ PAR1_BEG
+      val PAR1_END = scala.collection.mutable.Queue[Byte](0.toByte) ++ PAR1_BEG
       var PARQUET_MR_VERSION = "parquet-mr version".toList.map(_.toByte).toVector
       val q = scala.collection.mutable.Queue[Byte]()
 
@@ -167,6 +167,10 @@ class ParquetReaderActor(printerActor: ActorRef) extends Actor with akka.actor.A
         printerActor ! Printer.ParquetRecord(record)
         linesSent += 1
         record = reader.read()
+      }
+      // special case where the parquet file is empty
+      if (linesSent == 0) {
+        context.parent.tell(ParquetReaderFinished, self)
       }
       new java.io.File(input).delete
     }

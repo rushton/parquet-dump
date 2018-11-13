@@ -21,8 +21,12 @@ package parquetdump;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.Converter;
@@ -30,9 +34,15 @@ import org.apache.parquet.io.api.GroupConverter;
 import org.apache.parquet.io.api.PrimitiveConverter;
 import org.apache.parquet.schema.GroupType;
 import org.apache.parquet.schema.OriginalType;
+import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
+
 public class SimpleRecordConverter extends GroupConverter {
+  private static final int JULIAN_EPOCH_OFFSET_DAYS = 2_440_588;
+  private static final long MILLIS_IN_DAY = TimeUnit.DAYS.toMillis(1);
+  private static final long NANOS_PER_MILLISECOND = TimeUnit.MILLISECONDS.toNanos(1);
+
   private final Converter converters[];
   private final String name;
   private final SimpleRecordConverter parent;
@@ -58,6 +68,11 @@ public class SimpleRecordConverter extends GroupConverter {
   private Converter createConverter(Type field) {
     OriginalType otype = field.getOriginalType();
 
+    
+    if (field.isPrimitive() && field.asPrimitiveType().getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.INT96) {
+        return new Int96Converter(field.getName());
+    }
+    
     if (field.isPrimitive()) {
       if (otype != null) {
         switch (otype) {
@@ -164,6 +179,23 @@ public class SimpleRecordConverter extends GroupConverter {
     @Override
     public void addBinary(Binary value) {
       record.add(name, value.toStringUsingUTF8());
+    }
+  }
+
+  private class Int96Converter extends SimplePrimitiveConverter {
+
+    public Int96Converter(String name) {
+      super(name);
+    }
+
+    @Override
+    public void addBinary(Binary value) {
+      byte[] bytes = value.getBytes();
+      long timeOfDayNanos = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 0, 8)).order(ByteOrder.LITTLE_ENDIAN).getLong();
+      int julianDay = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 8, 12)).order(ByteOrder.LITTLE_ENDIAN).getInt();
+
+      long epochMillis = ((julianDay - JULIAN_EPOCH_OFFSET_DAYS) * MILLIS_IN_DAY ) + (timeOfDayNanos / NANOS_PER_MILLISECOND);
+      record.add(name, epochMillis);
     }
   }
 

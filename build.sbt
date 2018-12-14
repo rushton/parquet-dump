@@ -17,7 +17,7 @@ assemblyMergeStrategy in assembly := {
 lazy val root = (project in file("."))
     .settings(
         name := "Parquet-Dump",
-        version := "1.0.2",
+        version := "1.1.0",
         organization := "com.tune",
         scalaVersion := "2.11.8",
         parallelExecution in test := false,

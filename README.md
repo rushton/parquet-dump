@@ -15,7 +15,7 @@ Converts binary parquet data from a pipe into JSON outputted to STDOUT
 
 counting records per block
 ```
-cat /tmp/foobar/*.parquet | java -jar target/scala-2.11/Parquet-Dump-assembly-1.0.0.jar
+cat /tmp/foobar/*.parquet | java -jar target/scala-2.11/Parquet-Dump-assembly-1.0.0.jar --counts
 5
 10
 15

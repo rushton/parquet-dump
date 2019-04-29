@@ -12,6 +12,15 @@ Converts binary parquet data from a pipe into JSON outputted to STDOUT
 {"a":1,"b":null}
 ...
 ```
+
+counting records per block
+```
+cat /tmp/foobar/*.parquet | java -jar target/scala-2.11/Parquet-Dump-assembly-1.0.0.jar
+5
+10
+15
+```
+
 # Install
 
 Download the latest jar from the [releases](../../releases/latest) page

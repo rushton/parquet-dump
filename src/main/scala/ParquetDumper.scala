@@ -1,28 +1,43 @@
 package parquetdump
 
+import scala.collection.JavaConverters._
+
 import java.io.{File, FileInputStream, DataInputStream, BufferedInputStream, PrintWriter, InputStream}
 import java.util.concurrent.ArrayBlockingQueue
 import org.apache.hadoop.fs.Path
-import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.ParquetReader
+import org.apache.parquet.format.converter.ParquetMetadataConverter
+import org.apache.parquet.hadoop.ParquetFileReader
+import org.apache.parquet.hadoop.util.HadoopInputFile
 
 object ParquetDumper {
   def main(args: Array[String]) {
-
+    val isCount = args.headOption.map(_ == "--counts").getOrElse(false)
     val wq = new ArrayBlockingQueue[SimpleRecord](1000)
     val in = new FileInputStream(new File("/dev/stdin"))
     try {
       val out = new PrintWriter(System.out, true)
       unpackInputStream(in)
-        .flatMap(filePath => {
-          val reader = ParquetReader.builder(new SimpleReadSupport(), new Path(filePath)).build()
-          Iterator.continually({
-            reader.read()
-          })
-          .takeWhile(_ != null)
-        })
-        .foreach(record => {
-          record.prettyPrintJson(out)
-          out.println()
+        .foreach(filePath => {
+          if (isCount) {
+            val f = HadoopInputFile.fromPath(new Path(s"file://$filePath"), new org.apache.hadoop.conf.Configuration)
+            val blocks = ParquetFileReader.readFooter(new org.apache.hadoop.conf.Configuration, new Path(s"file://$filePath"), ParquetMetadataConverter.NO_FILTER)
+              .getBlocks
+              .asScala
+              .foreach(b => {
+                  out.println(b.getRowCount)
+              })
+          } else {
+            val reader = ParquetReader.builder(new SimpleReadSupport(), new Path(filePath)).build()
+            Iterator.continually({
+              reader.read()
+            })
+            .takeWhile(_ != null)
+            .foreach(record => {
+              record.prettyPrintJson(out)
+              out.println()
+            })
+        }
         })
     } catch {
       case e: Throwable => throw e

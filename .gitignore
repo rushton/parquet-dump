@@ -4,3 +4,4 @@ project/project
 project/target
 derby.log
 metastore_db
+*.sw[a-z]
